@@ -8,6 +8,7 @@ import nl.freek.vgwm.api.route.checkpointRoutes
 import nl.freek.vgwm.api.route.healthRoutes
 import nl.freek.vgwm.api.route.locationRoutes
 import nl.freek.vgwm.api.route.observationRoutes
+import nl.freek.vgwm.api.route.tourRoutes
 import org.koin.ktor.ext.get
 
 fun Application.configureRouting() {
@@ -18,5 +19,6 @@ fun Application.configureRouting() {
         categoryRoutes(get())
         checkpointRoutes(get())
         observationRoutes(get(), get())
+        tourRoutes(get())
     }
 }
