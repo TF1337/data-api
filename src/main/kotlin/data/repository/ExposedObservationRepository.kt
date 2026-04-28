@@ -84,6 +84,10 @@ class ExposedObservationRepository : ObservationRepository {
     ): Op<Boolean> {
         var predicate: Op<Boolean> = Op.TRUE
 
+        // Exposed requires typed EntityID values for nullable FK comparisons.
+        // ToursTable and UsersTable are referenced only to construct EntityID instances,
+        // not for joins, relation loading, or additional table access.
+
         filter.tourId?.let { tourId ->
             predicate = predicate and (ObservationsTable.tourId eq EntityID(tourId.value, ToursTable))
         }
