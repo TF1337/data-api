@@ -40,6 +40,9 @@ data class ObservationAiContext(
         require(checkpointLabel.isNotBlank()) { "Observation AI context checkpointLabel must not be blank." }
         require(locationLabel.isNotBlank()) { "Observation AI context locationLabel must not be blank." }
         require(observerLabel.isNotBlank()) { "Observation AI context observerLabel must not be blank." }
+        assigneeLabel?.let {
+            require(it.isNotBlank()) { "Observation AI context assigneeLabel must not be blank when provided." }
+        }
         require(description.isNotBlank()) { "Observation AI context description must not be blank." }
     }
 
