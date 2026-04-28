@@ -33,7 +33,7 @@ class Checkpoint private constructor(
             id = CheckpointId.generate(),
             locationId = locationId,
             name = name.trim(),
-            attentionNote = attentionNote,
+            attentionNote = attentionNote?.trim(),
             applicableCategories = applicableCategories,
         ).validated()
 
@@ -50,7 +50,7 @@ class Checkpoint private constructor(
             id = id,
             locationId = locationId,
             name = name.trim(),
-            attentionNote = attentionNote,
+            attentionNote = attentionNote?.trim(),
             applicableCategories = applicableCategories,
         ).validated()
     }

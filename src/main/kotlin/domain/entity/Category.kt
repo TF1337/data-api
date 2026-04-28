@@ -27,7 +27,7 @@ class Category private constructor(
             id = CategoryId.generate(),
             code = code.trim().uppercase(),
             displayName = displayName,
-            colorHex = colorHex,
+            colorHex = colorHex?.trim(),
         ).validated()
 
         /**
@@ -42,7 +42,7 @@ class Category private constructor(
             id = id,
             code = code.trim().uppercase(),
             displayName = displayName,
-            colorHex = colorHex,
+            colorHex = colorHex?.trim(),
         ).validated()
     }
 

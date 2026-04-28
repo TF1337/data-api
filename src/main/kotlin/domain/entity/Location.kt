@@ -33,7 +33,7 @@ class Location private constructor(
             name = name.trim(),
             parentLocationId = parentLocationId,
             orderIndex = orderIndex,
-            attentionNote = attentionNote,
+            attentionNote = attentionNote?.trim(),
         ).validated()
 
         /**
@@ -50,7 +50,7 @@ class Location private constructor(
             name = name.trim(),
             parentLocationId = parentLocationId,
             orderIndex = orderIndex,
-            attentionNote = attentionNote,
+            attentionNote = attentionNote?.trim(),
         ).validated()
     }
 
