@@ -19,9 +19,9 @@ import nl.freek.vgwm.domain.value.RootCauseAnalysis
 /**
  * HTTP implementation of [ChatbotClient] for the separate chatbot API.
  *
- * Endpoint assumptions for this adapter are intentionally explicit until the chatbot contract is finalized:
- * - POST `/analyze-photo`
- * - POST `/generate-observation-analysis`
+ * Chatbot API contract endpoints:
+ * - POST `/api/ai/photo-description`
+ * - POST `/api/ai/observation-analysis`
  */
 class HttpChatbotClient(
     baseUrl: String,
@@ -76,8 +76,8 @@ class HttpChatbotClient(
     }
 
     private companion object {
-        const val ANALYZE_PHOTO_PATH = "/analyze-photo"
-        const val GENERATE_OBSERVATION_ANALYSIS_PATH = "/generate-observation-analysis"
+        const val ANALYZE_PHOTO_PATH = "/api/ai/photo-description"
+        const val GENERATE_OBSERVATION_ANALYSIS_PATH = "/api/ai/observation-analysis"
     }
 }
 
