@@ -1,14 +1,11 @@
 package nl.freek.vgwm.plugins
 
 import io.ktor.server.application.Application
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import nl.freek.vgwm.api.route.healthRoutes
 
 fun Application.configureRouting() {
     routing {
-        get("/health") {
-            call.respondText("OK")
-        }
+        healthRoutes()
     }
 }
