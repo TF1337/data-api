@@ -27,6 +27,7 @@ data class TourDto(
 
 @Serializable
 data class CreateTourRequestDto(
+    val locationId: String,
     val type: String,
     val startedBy: String,
     val participants: List<String> = emptyList(),
@@ -37,6 +38,12 @@ data class UpdateTourCheckpointProgressRequestDto(
     val checkpointId: String,
     val status: String,
     val visitedAt: String? = null,
+    val notes: String? = null,
+)
+
+@Serializable
+data class UpdateTourCheckpointRequestDto(
+    val status: String,
     val notes: String? = null,
 )
 

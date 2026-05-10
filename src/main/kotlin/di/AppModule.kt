@@ -26,6 +26,9 @@ import nl.freek.vgwm.domain.service.ChatbotClient
 import nl.freek.vgwm.domain.service.ObservationCreationService
 import nl.freek.vgwm.domain.service.PasswordHasher
 import nl.freek.vgwm.domain.service.PhotoStorage
+import nl.freek.vgwm.domain.service.TourCheckpointProgressService
+import nl.freek.vgwm.domain.service.TourCreationService
+import nl.freek.vgwm.domain.service.TourLifecycleService
 import nl.freek.vgwm.domain.service.TokenProvider
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -79,6 +82,22 @@ fun appModule(appConfig: AppConfig): Module = module {
             observations = get(),
             chatbot = get(),
             photoStorage = get(),
+        )
+    }
+    single {
+        TourCreationService(
+            tours = get(),
+            checkpoints = get(),
+        )
+    }
+    single {
+        TourCheckpointProgressService(
+            tours = get(),
+        )
+    }
+    single {
+        TourLifecycleService(
+            tours = get(),
         )
     }
     single {
