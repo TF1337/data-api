@@ -48,3 +48,9 @@ data class ObservationAiContextDto(
     val description: String,
     val observedAt: String,
 )
+
+@Serializable
+data class CreateObservationDraftAnalysisRequestDto(
+    val photoBase64: String? = null,
+    val aiContext: ObservationAiContextDto? = null,
+)

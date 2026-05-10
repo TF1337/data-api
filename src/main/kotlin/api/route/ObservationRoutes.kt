@@ -11,6 +11,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import java.util.Base64
 import kotlinx.datetime.Instant
+import nl.freek.vgwm.api.dto.CreateObservationDraftAnalysisRequestDto
 import nl.freek.vgwm.api.dto.CreateObservationRequestDto
 import nl.freek.vgwm.api.dto.ErrorResponseDto
 import nl.freek.vgwm.api.dto.ObservationAiContextDto
@@ -40,6 +41,56 @@ fun Route.observationRoutes(
 ) {
     authenticate("auth-jwt") {
         route("/api/observations") {
+            post("/ai/draft-analysis") {
+                val requestDto = call.receive<CreateObservationDraftAnalysisRequestDto>()
+
+                val photoBase64 = requestDto.photoBase64
+                if (photoBase64 == null || photoBase64.isBlank()) {
+                    call.badRequest(
+                        message = "Field 'photoBase64' is required and must not be blank.",
+                        code = "MISSING_PHOTO",
+                    )
+                    return@post
+                }
+
+                val aiContext = requestDto.aiContext
+                if (aiContext == null) {
+                    call.badRequest(
+                        message = "Field 'aiContext' is required.",
+                        code = "MISSING_AI_CONTEXT",
+                    )
+                    return@post
+                }
+
+                val photoBytes = try {
+                    decodeRequiredPhotoBase64(photoBase64)
+                } catch (_: IllegalArgumentException) {
+                    call.badRequest(
+                        message = "Invalid 'photoBase64' value.",
+                        code = "INVALID_PHOTO_BASE64",
+                    )
+                    return@post
+                }
+
+                val draftAiAnalysis = try {
+                    observationCreationService.generateDraftAiAnalysis(
+                        photoBytes = photoBytes,
+                        aiContext = aiContext.toDomain(),
+                    )
+                } catch (_: ObservationCreationService.DraftAiAnalysisException) {
+                    call.respond(
+                        HttpStatusCode.BadGateway,
+                        ErrorResponseDto(
+                            message = "AI draft analysis generation failed.",
+                            code = "AI_ANALYSIS_FAILED",
+                        ),
+                    )
+                    return@post
+                }
+
+                call.respond(HttpStatusCode.OK, draftAiAnalysis.toDto())
+            }
+
             get {
                 val filter = call.buildObservationFilter(
                     tourIdRaw = call.request.queryParameters["tourId"],
@@ -321,6 +372,12 @@ private fun decodePhotoBase64(raw: String?): ByteArray? {
     } catch (_: IllegalArgumentException) {
         throw IllegalArgumentException("Invalid 'photoBase64' value.")
     }
+}
+
+private fun decodeRequiredPhotoBase64(raw: String): ByteArray = try {
+    Base64.getDecoder().decode(raw)
+} catch (_: IllegalArgumentException) {
+    throw IllegalArgumentException("Invalid 'photoBase64' value.")
 }
 
 private fun parseObservedAt(raw: String): Instant = try {

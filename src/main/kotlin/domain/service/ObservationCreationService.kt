@@ -45,6 +45,7 @@ class ObservationCreationService(
     private val chatbot: ChatbotClient,
     private val photoStorage: PhotoStorage,
 ) {
+    class DraftAiAnalysisException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
     /**
      * Creates a new observation and enriches it with AI analysis when photo bytes are available.
      *
@@ -105,5 +106,34 @@ class ObservationCreationService(
         }
 
         return observations.save(observation)
+    }
+
+    /**
+     * Generates draft AI analysis from photo bytes and AI context without persisting anything.
+     */
+    suspend fun generateDraftAiAnalysis(photoBytes: ByteArray, aiContext: ObservationAiContext): AiAnalysis {
+        return try {
+            val imageBase64 = Base64.getEncoder().encodeToString(photoBytes)
+            val photoAnalysis = chatbot.analyzePhoto(
+                imageBase64 = imageBase64,
+                context = aiContext,
+            )
+            val generatedAnalysis = chatbot.generateObservationAnalysis(
+                context = aiContext.withDescription(
+                    aiContext.description + "\n\nPhoto analysis: " + photoAnalysis.description,
+                ),
+                imageBase64 = imageBase64,
+            )
+
+            AiAnalysis(
+                photoDescription = photoAnalysis.description,
+                fiveW1H = generatedAnalysis.fiveW1H,
+                rootCauseAnalysis = generatedAnalysis.rootCauseAnalysis,
+                leanAnalysis = generatedAnalysis.leanAnalysis ?: photoAnalysis.leanAnalysis,
+                generatedAt = Clock.System.now(),
+            )
+        } catch (exception: Exception) {
+            throw DraftAiAnalysisException("Draft AI analysis generation failed.", exception)
+        }
     }
 }
