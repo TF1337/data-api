@@ -7,6 +7,7 @@ import kotlinx.serialization.json.Json
 import nl.freek.vgwm.config.AppConfig
 import nl.freek.vgwm.data.external.HttpChatbotClient
 import nl.freek.vgwm.data.external.LocalFilePhotoStorage
+import nl.freek.vgwm.data.repository.ExposedCompanyInfoRepository
 import nl.freek.vgwm.data.repository.ExposedCategoryRepository
 import nl.freek.vgwm.data.repository.ExposedCheckpointRepository
 import nl.freek.vgwm.data.repository.ExposedLocationRepository
@@ -17,6 +18,7 @@ import nl.freek.vgwm.data.security.BcryptPasswordHasher
 import nl.freek.vgwm.data.security.JwtTokenProvider
 import nl.freek.vgwm.domain.repository.CategoryRepository
 import nl.freek.vgwm.domain.repository.CheckpointRepository
+import nl.freek.vgwm.domain.repository.CompanyInfoRepository
 import nl.freek.vgwm.domain.repository.LocationRepository
 import nl.freek.vgwm.domain.repository.ObservationRepository
 import nl.freek.vgwm.domain.repository.TourRepository
@@ -24,6 +26,7 @@ import nl.freek.vgwm.domain.repository.UserRepository
 import nl.freek.vgwm.domain.service.AuthService
 import nl.freek.vgwm.domain.service.ChatbotClient
 import nl.freek.vgwm.domain.service.ObservationCreationService
+import nl.freek.vgwm.domain.service.ObservationMutationService
 import nl.freek.vgwm.domain.service.PasswordHasher
 import nl.freek.vgwm.domain.service.PhotoStorage
 import nl.freek.vgwm.domain.service.TourCheckpointProgressService
@@ -56,6 +59,7 @@ fun appModule(appConfig: AppConfig): Module = module {
     single<LocationRepository> { ExposedLocationRepository() }
     single<CategoryRepository> { ExposedCategoryRepository() }
     single<CheckpointRepository> { ExposedCheckpointRepository() }
+    single<CompanyInfoRepository> { ExposedCompanyInfoRepository() }
     single<UserRepository> { ExposedUserRepository() }
     single<ObservationRepository> { ExposedObservationRepository() }
     single<TourRepository> { ExposedTourRepository() }
@@ -80,8 +84,15 @@ fun appModule(appConfig: AppConfig): Module = module {
     single {
         ObservationCreationService(
             observations = get(),
+            tours = get(),
             chatbot = get(),
             photoStorage = get(),
+        )
+    }
+    single {
+        ObservationMutationService(
+            observations = get(),
+            tours = get(),
         )
     }
     single {

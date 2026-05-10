@@ -14,6 +14,11 @@ import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTrans
  */
 class ExposedUserRepository : UserRepository {
 
+    override suspend fun findAll(): List<User> = newSuspendedTransaction {
+        UserEntity.all()
+            .map(UserMapper::toDomain)
+    }
+
     override suspend fun findById(id: UserId): User? = newSuspendedTransaction {
         UserEntity.findById(id.value)?.let(UserMapper::toDomain)
     }

@@ -8,9 +8,11 @@ import nl.freek.vgwm.domain.id.CheckpointId
 import nl.freek.vgwm.domain.id.TourId
 import nl.freek.vgwm.domain.id.UserId
 import nl.freek.vgwm.domain.repository.ObservationRepository
+import nl.freek.vgwm.domain.repository.TourRepository
 import nl.freek.vgwm.domain.value.AiAnalysis
 import nl.freek.vgwm.domain.value.ObservationType
 import nl.freek.vgwm.domain.value.Priority
+import nl.freek.vgwm.domain.value.TourStatus
 
 /**
  * Request model for observation creation orchestration.
@@ -42,6 +44,7 @@ data class NewObservationRequest(
  */
 class ObservationCreationService(
     private val observations: ObservationRepository,
+    private val tours: TourRepository,
     private val chatbot: ChatbotClient,
     private val photoStorage: PhotoStorage,
 ) {
@@ -53,6 +56,8 @@ class ObservationCreationService(
      * AI failures are fail-soft: observation creation continues without AI analysis.
      */
     suspend fun createWithAiAnalysis(request: NewObservationRequest): Observation {
+        ensureTourSupportsObservationCreate(request.tourId)
+
         val photoPath = request.photoBytes?.let { photoStorage.save(it) }
 
         var observation = Observation.create(
@@ -106,6 +111,17 @@ class ObservationCreationService(
         }
 
         return observations.save(observation)
+    }
+
+    private suspend fun ensureTourSupportsObservationCreate(tourId: TourId?) {
+        if (tourId == null) {
+            return
+        }
+
+        val linkedTour = tours.findById(tourId) ?: throw IllegalArgumentException("TOUR_NOT_FOUND")
+        if (linkedTour.status != TourStatus.IN_PROGRESS) {
+            throw IllegalArgumentException("TOUR_NOT_ACTIVE_FOR_OBSERVATION_CREATE")
+        }
     }
 
     /**

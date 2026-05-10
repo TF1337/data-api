@@ -7,6 +7,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import java.util.Base64
@@ -15,6 +16,7 @@ import nl.freek.vgwm.api.dto.CreateObservationDraftAnalysisRequestDto
 import nl.freek.vgwm.api.dto.CreateObservationRequestDto
 import nl.freek.vgwm.api.dto.ErrorResponseDto
 import nl.freek.vgwm.api.dto.ObservationAiContextDto
+import nl.freek.vgwm.api.dto.UpdateObservationRequestDto
 import nl.freek.vgwm.api.dto.mapper.toDomain
 import nl.freek.vgwm.api.dto.mapper.toDto
 import nl.freek.vgwm.domain.id.CategoryId
@@ -28,9 +30,12 @@ import nl.freek.vgwm.domain.repository.ObservationRepository
 import nl.freek.vgwm.domain.service.NewObservationRequest
 import nl.freek.vgwm.domain.service.ObservationAiContext
 import nl.freek.vgwm.domain.service.ObservationCreationService
+import nl.freek.vgwm.domain.service.ObservationMutationService
+import nl.freek.vgwm.domain.service.UpdateObservationRequest
 import nl.freek.vgwm.domain.value.ObservationStatus
 import nl.freek.vgwm.domain.value.ObservationType
 import nl.freek.vgwm.domain.value.Priority
+import org.koin.java.KoinJavaComponent.get
 
 /**
  * Registers observation HTTP routes.
@@ -39,6 +44,8 @@ fun Route.observationRoutes(
     observationRepository: ObservationRepository,
     observationCreationService: ObservationCreationService,
 ) {
+    val observationMutationService: ObservationMutationService = get(ObservationMutationService::class.java)
+
     authenticate("auth-jwt") {
         route("/api/observations") {
             post("/ai/draft-analysis") {
@@ -164,8 +171,88 @@ fun Route.observationRoutes(
                     return@post
                 }
 
-                val created = observationCreationService.createWithAiAnalysis(newObservationRequest)
+                val created = try {
+                    observationCreationService.createWithAiAnalysis(newObservationRequest)
+                } catch (exception: IllegalArgumentException) {
+                    when (exception.message) {
+                        "TOUR_NOT_FOUND" -> {
+                            call.notFound(
+                                message = "Linked tour was not found.",
+                                code = "TOUR_NOT_FOUND",
+                            )
+                            return@post
+                        }
+
+                        "TOUR_NOT_ACTIVE_FOR_OBSERVATION_CREATE" -> {
+                            call.respond(
+                                HttpStatusCode.Conflict,
+                                ErrorResponseDto(
+                                    message = "Observations can be linked only to tours in IN_PROGRESS status.",
+                                    code = "TOUR_NOT_ACTIVE_FOR_OBSERVATION_CREATE",
+                                ),
+                            )
+                            return@post
+                        }
+
+                        else -> throw exception
+                    }
+                }
                 call.respond(HttpStatusCode.Created, created.toDto())
+            }
+
+            patch("/{id}") {
+                val id = call.parameters["id"]
+                if (id.isNullOrBlank()) {
+                    call.badRequest("Path parameter 'id' is required.", "INVALID_OBSERVATION_ID")
+                    return@patch
+                }
+
+                val requestDto = call.receive<UpdateObservationRequestDto>()
+
+                val updatedObservation = try {
+                    observationMutationService.update(
+                        observationId = ObservationId(id),
+                        request = requestDto.toDomain(),
+                    )
+                } catch (exception: IllegalArgumentException) {
+                    when (exception.message) {
+                        "INVALID_OBSERVATION_STATUS" -> call.badRequest(
+                            message = "Invalid or unsupported observation status value. Only RESOLVED and CANCELLED are allowed.",
+                            code = "INVALID_OBSERVATION_STATUS",
+                        )
+
+                        "UNSUPPORTED_OBSERVATION_STATUS_TRANSITION" -> call.badRequest(
+                            message = "Unsupported observation status transition.",
+                            code = "UNSUPPORTED_OBSERVATION_STATUS_TRANSITION",
+                        )
+
+                        "TOUR_NOT_FOUND" -> call.notFound(
+                            message = "Linked tour was not found.",
+                            code = "TOUR_NOT_FOUND",
+                        )
+
+                        "TOUR_TERMINAL_OBSERVATION_MUTATION_NOT_ALLOWED" -> call.respond(
+                            HttpStatusCode.Conflict,
+                            ErrorResponseDto(
+                                message = "Description and aiAnalysis cannot be changed when linked tour is terminal.",
+                                code = "TOUR_TERMINAL_OBSERVATION_MUTATION_NOT_ALLOWED",
+                            ),
+                        )
+
+                        else -> call.badRequest(
+                            message = exception.message ?: "Invalid observation update request.",
+                            code = "INVALID_OBSERVATION_UPDATE_REQUEST",
+                        )
+                    }
+                    return@patch
+                }
+
+                if (updatedObservation == null) {
+                    call.notFound("Observation not found.", "OBSERVATION_NOT_FOUND")
+                    return@patch
+                }
+
+                call.respond(HttpStatusCode.OK, updatedObservation.toDto())
             }
         }
     }
@@ -348,6 +435,14 @@ private fun ObservationAiContextDto.toDomain(): ObservationAiContext = Observati
     observationType = parseObservationTypeOrThrow(observationType, "aiContext.observationType"),
     description = description,
     observedAt = parseObservedAt(observedAt),
+)
+
+private fun UpdateObservationRequestDto.toDomain(): UpdateObservationRequest = UpdateObservationRequest(
+    description = description,
+    assigneeId = assigneeId,
+    externalRef = externalRef,
+    aiAnalysis = aiAnalysis?.toDomain(),
+    status = status,
 )
 
 private fun parseObservationTypeOrThrow(raw: String, fieldName: String): ObservationType = try {

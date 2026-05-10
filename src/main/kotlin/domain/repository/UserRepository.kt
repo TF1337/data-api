@@ -8,6 +8,11 @@ import nl.freek.vgwm.domain.id.UserId
  */
 interface UserRepository {
     /**
+     * Lists all users.
+     */
+    suspend fun findAll(): List<User>
+
+    /**
      * Finds a user by unique identity.
      */
     suspend fun findById(id: UserId): User?
