@@ -5,6 +5,11 @@ import nl.freek.vgwm.data.table.CheckpointCategoriesTable
 import nl.freek.vgwm.data.table.CheckpointsTable
 import nl.freek.vgwm.data.table.CompanyInfoTable
 import nl.freek.vgwm.data.table.LocationsTable
+import nl.freek.vgwm.data.table.ObservationsTable
+import nl.freek.vgwm.data.table.TourCheckpointProgressTable
+import nl.freek.vgwm.data.table.TourParticipantsTable
+import nl.freek.vgwm.data.table.ToursTable
+import nl.freek.vgwm.data.table.UsersTable
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
@@ -95,12 +100,29 @@ object DeHeusSeedData {
      */
     fun seedIfNeeded() {
         transaction {
+            if (!isDatabaseEmpty()) {
+                return@transaction
+            }
+
             seedCompanyInfoIfMissing()
             seedCategoriesIfMissing()
             seedLocationsIfMissing()
             seedCheckpointsIfMissing()
             seedCheckpointCategoriesIfMissing()
         }
+    }
+
+    private fun isDatabaseEmpty(): Boolean {
+        return !UsersTable.selectAll().any() &&
+            !LocationsTable.selectAll().any() &&
+            !CategoriesTable.selectAll().any() &&
+            !CheckpointsTable.selectAll().any() &&
+            !CheckpointCategoriesTable.selectAll().any() &&
+            !ToursTable.selectAll().any() &&
+            !TourParticipantsTable.selectAll().any() &&
+            !TourCheckpointProgressTable.selectAll().any() &&
+            !ObservationsTable.selectAll().any() &&
+            !CompanyInfoTable.selectAll().any()
     }
 
     private fun seedCompanyInfoIfMissing() {

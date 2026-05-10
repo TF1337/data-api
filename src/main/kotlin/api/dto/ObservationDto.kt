@@ -33,7 +33,9 @@ data class CreateObservationRequestDto(
     val description: String,
     val priority: String,
     val photoBase64: String? = null,
-    val aiContext: ObservationAiContextDto,
+    val aiContext: ObservationAiContextDto? = null,
+    val requestAiAnalysis: Boolean = false,
+    val aiAnalysis: AiAnalysisDto? = null,
 )
 
 @Serializable

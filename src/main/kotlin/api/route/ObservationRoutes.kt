@@ -14,6 +14,7 @@ import kotlinx.datetime.Instant
 import nl.freek.vgwm.api.dto.CreateObservationRequestDto
 import nl.freek.vgwm.api.dto.ErrorResponseDto
 import nl.freek.vgwm.api.dto.ObservationAiContextDto
+import nl.freek.vgwm.api.dto.mapper.toDomain
 import nl.freek.vgwm.api.dto.mapper.toDto
 import nl.freek.vgwm.domain.id.CategoryId
 import nl.freek.vgwm.domain.id.CheckpointId
@@ -77,6 +78,31 @@ fun Route.observationRoutes(
 
             post {
                 val requestDto = call.receive<CreateObservationRequestDto>()
+
+                if (requestDto.requestAiAnalysis && requestDto.aiAnalysis != null) {
+                    call.badRequest(
+                        message = "Fields 'requestAiAnalysis=true' and 'aiAnalysis' cannot be combined in one create request.",
+                        code = "AMBIGUOUS_AI_ANALYSIS_REQUEST",
+                    )
+                    return@post
+                }
+
+                if (requestDto.requestAiAnalysis && requestDto.aiContext == null) {
+                    call.badRequest(
+                        message = "Field 'aiContext' is required when 'requestAiAnalysis' is true.",
+                        code = "AI_CONTEXT_REQUIRED",
+                    )
+                    return@post
+                }
+
+                if (requestDto.requestAiAnalysis && requestDto.photoBase64 == null) {
+                    call.badRequest(
+                        message = "Field 'photoBase64' is required when 'requestAiAnalysis' is true.",
+                        code = "AI_PHOTO_REQUIRED",
+                    )
+                    return@post
+                }
+
                 val newObservationRequest = try {
                     requestDto.toNewObservationRequest()
                 } catch (exception: IllegalArgumentException) {
@@ -258,7 +284,9 @@ private fun CreateObservationRequestDto.toNewObservationRequest(): NewObservatio
     priority = parsePriorityOrThrow(priority),
     tourId = tourId?.let { TourId(it) },
     photoBytes = decodePhotoBase64(photoBase64),
-    aiContext = aiContext.toDomain(),
+    aiContext = aiContext?.toDomain(),
+    requestAiAnalysis = requestAiAnalysis,
+    aiAnalysis = aiAnalysis?.toDomain(),
 )
 
 private fun ObservationAiContextDto.toDomain(): ObservationAiContext = ObservationAiContext(

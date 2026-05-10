@@ -29,6 +29,7 @@ fun Translations.toDto(): TranslationsDto = TranslationsDto(
     en = en,
     nl = nl,
 )
+// english translation also in IDE
 
 fun Checkpoint.toDto(): CheckpointDto = CheckpointDto(
     id = id.value,

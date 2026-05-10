@@ -27,7 +27,9 @@ data class NewObservationRequest(
     val priority: Priority,
     val tourId: TourId? = null,
     val photoBytes: ByteArray? = null,
-    val aiContext: ObservationAiContext,
+    val aiContext: ObservationAiContext? = null,
+    val requestAiAnalysis: Boolean = false,
+    val aiAnalysis: AiAnalysis? = null,
 ) {
     init {
         require(description.isNotBlank()) { "New observation description must not be blank." }
@@ -67,7 +69,14 @@ class ObservationCreationService(
             observation = observation.assignTo(request.assigneeId)
         }
 
-        if (request.photoBytes != null) {
+        if (!request.requestAiAnalysis && request.aiAnalysis != null) {
+            observation = observation.withAiAnalysis(request.aiAnalysis)
+        }
+
+        if (request.requestAiAnalysis) {
+            require(request.photoBytes != null) { "photoBytes is required when requestAiAnalysis is true." }
+            require(request.aiContext != null) { "aiContext is required when requestAiAnalysis is true." }
+
             try {
                 val imageBase64 = Base64.getEncoder().encodeToString(request.photoBytes)
                 val photoAnalysis = chatbot.analyzePhoto(
