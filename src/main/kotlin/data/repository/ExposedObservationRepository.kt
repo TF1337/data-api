@@ -94,6 +94,9 @@ class ExposedObservationRepository : ObservationRepository {
         filter.checkpointId?.let { checkpointId ->
             predicate = predicate and (ObservationsTable.checkpointId eq checkpointId.value)
         }
+        filter.categoryId?.let { categoryId ->
+            predicate = predicate and (ObservationsTable.categoryId eq categoryId.value)
+        }
         filter.status?.let { status ->
             predicate = predicate and (ObservationsTable.status eq status)
         }

@@ -102,6 +102,7 @@ fun Route.observationRoutes(
                 val filter = call.buildObservationFilter(
                     tourIdRaw = call.request.queryParameters["tourId"],
                     checkpointIdRaw = call.request.queryParameters["checkpointId"],
+                    categoryIdRaw = call.request.queryParameters["categoryId"],
                     locationIdRaw = call.request.queryParameters["locationId"],
                     statusRaw = call.request.queryParameters["status"],
                     priorityRaw = call.request.queryParameters["priority"],
@@ -261,6 +262,7 @@ fun Route.observationRoutes(
 private suspend fun ApplicationCall.buildObservationFilter(
     tourIdRaw: String?,
     checkpointIdRaw: String?,
+    categoryIdRaw: String?,
     locationIdRaw: String?,
     statusRaw: String?,
     priorityRaw: String?,
@@ -273,6 +275,9 @@ private suspend fun ApplicationCall.buildObservationFilter(
 
     val checkpointId = parseCheckpointId(checkpointIdRaw)
     if (!checkpointId.isValid) return null
+
+    val categoryId = parseCategoryId(categoryIdRaw)
+    if (!categoryId.isValid) return null
 
     val locationId = parseLocationId(locationIdRaw)
     if (!locationId.isValid) return null
@@ -295,6 +300,7 @@ private suspend fun ApplicationCall.buildObservationFilter(
     return ObservationFilter(
         tourId = tourId.value,
         checkpointId = checkpointId.value,
+        categoryId = categoryId.value,
         locationId = locationId.value,
         status = status.value,
         priority = priority.value,
@@ -320,6 +326,15 @@ private suspend fun ApplicationCall.parseCheckpointId(raw: String?): ParseResult
         return ParseResult.invalid()
     }
     return ParseResult.valid(CheckpointId(raw))
+}
+
+private suspend fun ApplicationCall.parseCategoryId(raw: String?): ParseResult<CategoryId> {
+    if (raw == null) return ParseResult.valid(null)
+    if (raw.isBlank()) {
+        badRequest("Query parameter 'categoryId' must not be blank.", "INVALID_CATEGORY_ID")
+        return ParseResult.invalid()
+    }
+    return ParseResult.valid(CategoryId(raw))
 }
 
 private suspend fun ApplicationCall.parseLocationId(raw: String?): ParseResult<LocationId> {
