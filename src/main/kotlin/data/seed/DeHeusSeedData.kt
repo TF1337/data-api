@@ -10,12 +10,16 @@ import nl.freek.vgwm.data.table.TourCheckpointProgressTable
 import nl.freek.vgwm.data.table.TourParticipantsTable
 import nl.freek.vgwm.data.table.ToursTable
 import nl.freek.vgwm.data.table.UsersTable
+import nl.freek.vgwm.data.security.BcryptPasswordHasher
+import nl.freek.vgwm.domain.entity.User
+import nl.freek.vgwm.domain.value.UserRole
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import kotlin.time.Instant as PersistenceInstant
 
 /**
  * Deployment reference seed data for the De Heus Veghel placeholder setup.
@@ -104,6 +108,7 @@ object DeHeusSeedData {
                 return@transaction
             }
 
+            seedAdminUserIfMissing()
             seedCompanyInfoIfMissing()
             seedCategoriesIfMissing()
             seedLocationsIfMissing()
@@ -111,6 +116,33 @@ object DeHeusSeedData {
             seedCheckpointCategoriesIfMissing()
         }
     }
+
+    private fun seedAdminUserIfMissing() {
+        if (UsersTable.selectAll().any()) {
+            return
+        }
+
+        val hasher = BcryptPasswordHasher()
+        val user = User.create(
+            name = "Sentinel Admin",
+            email = "admin@sentinel.local",
+            role = UserRole.ADMIN,
+            passwordHash = hasher.hash("admin123"),
+        )
+
+        UsersTable.insert { row ->
+            row[id] = EntityID(user.id.value, UsersTable)
+            row[createdAt] = user.createdAt.toPersistenceInstant()
+            row[updatedAt] = user.updatedAt.toPersistenceInstant()
+            row[name] = user.name
+            row[email] = user.email
+            row[role] = user.role
+            row[passwordHash] = user.passwordHash.value
+        }
+    }
+
+    private fun kotlinx.datetime.Instant.toPersistenceInstant(): PersistenceInstant =
+        PersistenceInstant.parse(toString())
 
     private fun isDatabaseEmpty(): Boolean {
         return !UsersTable.selectAll().any() &&
